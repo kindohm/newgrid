@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden
+    }
+  </style>
+  <script src="socket.io.min.js"></script>
+  <script src="p5.min.js"></script>
+  <script>
+
+    let cam;
+    let dim = 5;
+    let cellSize = 150;
+    let cells = [];
+    let centerTranslate = 0;
+    let camroton = true;
+    let camrotspeed = 0.01;
+    let cellroton = false;
+
+    class Cell {
+      constructor() {
+
+      }
+
+      rotationX = 0;
+      rotationY = 0;
+      rotationZ = 0;
+      translationX = 0;
+      translationY = 0;
+      translationZ = 0;
+      on = false;
+      rotating = false;
+      translating = false;
+      rotationRateX = Math.random() * 0.02;
+      rotationRateY = Math.random() * 0.02;
+      rotationRateZ = Math.random() * 0.02;
+      translationRateX = Math.random() * 0.5;
+      translationRateY = Math.random() * 0.5;
+      translationRateZ = Math.random() * 0.5;
+
+      reset() {
+        this.rotationX = 0;
+        this.rotationY = 0;
+        this.rotationZ = 0;
+        this.translationX = 0
+        this.translationY = 0;
+        this.translationZ = 0;
+        this.rotating = false;
+        this.translating = false;
+      }
+
+      draw() {
+        if (this.rotating) {
+          this.rotationX += this.rotationRateX;
+          this.rotationY += this.rotationRateY;
+          this.rotationZ += this.rotationRateZ;
+        }
+
+        rotateX(this.rotationX);
+        rotateY(this.rotationY);
+        rotateZ(this.rotationZ);
+
+
+        if (this.translating) {
+          this.translationX += this.translationRateX;
+          this.translationY += this.translationRateY;
+          this.translationZ += this.translationRateZ;
+
+        }
+        // after rotation, translate is a curve
+        translate(this.translationX, this.translationY, this.translationZ)
+
+        box(cellSize * 0.5);
+      }
+    }
+
+    const parseMessage = (oscMsg) => {
+      const { args } = oscMsg;
+      let ret = {};
+      for (let i = 0; i < args.length; i += 2) {
+        ret[args[i].value] = args[i + 1].value;
+      }
+      return ret;
+    };
+
+    const socket = io();
+    socket.on("connect", (x) => {
+      console.log(socket.id, x); // x8WIv7-mJelg7on_ALbx
+    });
+
+    socket.on("data", (x) => {
+      const msg = parseMessage(x.oscMsg);
+      if (msg.s === "add") {
+        hit();
+        return;
+      }
+
+      if (msg.s === "reset") {
+        reset();
+        return;
+      }
+
+      if (msg.s === 'camroton') {
+        camroton = true;
+        return;
+      }
+
+      if (msg.s === 'camrotoff') {
+        camroton = false;
+        return;
+      }
+
+      if (msg.s === 'camreset') {
+        inc = 10;
+        return;
+      }
+
+      if (msg.s === 'cellroton') {
+        cells.forEach(c => c.rotating = true)
+        return;
+      }
+
+      if (msg.s === 'cellrotoff') {
+        cells.forEach(c => c.rotating = false)
+        return;
+      }
+
+      if (msg.s === 'cellrotreset') {
+        cells.forEach(c => c.reset())
+        return;
+      }
+
+      if (msg.s === 'celltranson') {
+        cells.forEach(c => c.translating = true)
+        return;
+      }
+
+      if (msg.s === 'celltransoff') {
+        cells.forEach(c => c.translating = false)
+        return;
+      }
+
+    })
+
+    function reset() {
+      hitCount = 0;
+      cells.forEach(c => {
+        c.on = false;
+        c.reset();
+      });
+
+    }
+
+    let hitCount = 0;
+    function hit() {
+      if (hitCount === cells.length - 1) {
+        reset();
+      }
+      hitCount++;
+      for (let i = 0; i < hitCount; i++) {
+        cells[i].on = true;
+      }
+    }
+
+    function setup() {
+      cells = (new Array(dim * dim * dim)).fill(0).map(x => {
+        return new Cell();
+      })
+
+      createCanvas(windowWidth, windowHeight, WEBGL);
+      centerTranslate = -cellSize * dim / 2 + cellSize / 2
+      reset();
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+    }
+
+    function getCoords(idx) {
+      return {
+        x: idx % dim,
+        y: Math.floor((idx / dim)) % dim,
+        z: Math.floor(idx / (dim * dim))
+      }
+    }
+
+    let inc = 0;
+
+    function draw() {
+
+
+      background(255, 87, 51);
+      if (camroton) {
+        inc++;
+      }
+      rotateY(inc * camrotspeed);
+      rotateX(inc * camrotspeed * 0.333);
+      translate(centerTranslate, centerTranslate, centerTranslate);
+
+      for (let i = 0; i < cells.length; i++) {
+        if (cells[i].on === false) {
+          continue;
+        }
+
+        const { x, y, z } = getCoords(i);
+        push();
+        translate(cellSize * x, cellSize * y, cellSize * z);
+        // box(cellSize * 0.8);
+        cells[i].draw();
+        pop();
+
+
+      }
+    }
+
+  </script>
+</head>
+
+<body>
+  <main></main>
+</body>
+
+</html>
