@@ -1,16 +1,18 @@
 do
-  let plies = "<<20 30 50> 1>"
+  let plies = "<<70 100 50 80> 1>"
   d1 
+    $ (|* cps (range 0.5 2 $ slow 10.3333 tri))
+    $ (|* cps (range 0.5 2 $ slow 11.3333 tri))
     $ stack [
       plyWith plies id $ s "<bd cp>" # n 0  # legato 1 # hpf 35 # speed 1
-    ] # shape 0.5 # cps ("<0.5 1>" * (segment 1 $ range 0.5 1 $ rand)) # gain 1.2
+    ] # shape 0.5 # cps ("<0.5 <1 2 3 4 5 6>>" * (segment 1 $ range 0.5 1 $ rand)) # gain 1.2
   d2
     $ stack [
       plyWith plies id $ s "<add add>" 
       , plyWith plies id $ s "<camroton [camrotoff]>" 
       , s "<~ ~>"
-      , s "<[cellrotoff, celltransoff] celltranson>"
-      , s "<~ [cellroton]>"
+      , s "<[celltransoff] celltranson>"
+      , s "<cellroton [cellrotoff]>"
     ] 
 
   hush
